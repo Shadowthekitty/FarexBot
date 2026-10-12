@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "farexbot",
+  "version": "${version}",
+  "name": "FarexBot",
+  "description": "Lets a friend trigger your ender pearl stasis chamber loader with a keybind.",
+  "authors": ["Shadowthekitty"],
+  "license": "MIT",
+  "environment": "client",
+  "entrypoints": {
+    "client": ["dev.farex.farexbot.FarexBot"]
+  },
+  "depends": {
+    "fabricloader": ">=0.16.10",
+    "minecraft": "~1.21.4",
+    "java": ">=21",
+    "fabric-api": "*"
+  }
+}
