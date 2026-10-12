@@ -11,9 +11,9 @@
     "client": ["dev.farex.farexbot.FarexBot"]
   },
   "depends": {
-    "fabricloader": ">=0.16.10",
-    "minecraft": "~1.21.4",
-    "java": ">=21",
+    "fabricloader": ">=0.19.5",
+    "minecraft": "~26.3",
+    "java": ">=25",
     "fabric-api": "*"
   }
 }

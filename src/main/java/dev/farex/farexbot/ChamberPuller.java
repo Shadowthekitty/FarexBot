@@ -1,15 +1,15 @@
 package dev.farex.farexbot;
 
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.network.ClientPlayerEntity;
-import net.minecraft.client.world.ClientWorld;
-import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket;
-import net.minecraft.util.ActionResult;
-import net.minecraft.util.Hand;
-import net.minecraft.util.hit.BlockHitResult;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.network.protocol.game.ServerboundMovePlayerPacket;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -46,7 +46,7 @@ public final class ChamberPuller {
     private ChamberPuller() {
     }
 
-    public static Result pull(MinecraftClient client, FarexConfig.Chamber chamber) {
+    public static Result pull(Minecraft client, FarexConfig.Chamber chamber) {
         Result result = interact(client, chamber);
         if (result == Result.OK && chamber.resetAfterTicks > 0) {
             PENDING_RESETS.add(new PendingReset(chamber, chamber.resetAfterTicks));
@@ -54,7 +54,7 @@ public final class ChamberPuller {
         return result;
     }
 
-    public static void tick(MinecraftClient client) {
+    public static void tick(Minecraft client) {
         List<PendingReset> due = new ArrayList<>();
         PENDING_RESETS.removeIf(reset -> {
             if (--reset.ticksLeft > 0) return false;
@@ -66,32 +66,32 @@ public final class ChamberPuller {
         }
     }
 
-    private static Result interact(MinecraftClient client, FarexConfig.Chamber chamber) {
-        ClientPlayerEntity player = client.player;
-        ClientWorld world = client.world;
-        if (player == null || world == null || client.interactionManager == null) return Result.NOT_IN_WORLD;
-        if (!world.getRegistryKey().getValue().toString().equals(chamber.dimension)) return Result.WRONG_DIMENSION;
+    private static Result interact(Minecraft client, FarexConfig.Chamber chamber) {
+        LocalPlayer player = client.player;
+        ClientLevel level = client.level;
+        if (player == null || level == null || client.gameMode == null) return Result.NOT_IN_WORLD;
+        if (!FarexBot.dimensionId(level).equals(chamber.dimension)) return Result.WRONG_DIMENSION;
 
         BlockPos pos = chamber.pos();
-        Vec3d target = Vec3d.ofCenter(pos);
-        Vec3d eyes = player.getEyePos();
-        double reach = player.getBlockInteractionRange();
-        if (eyes.squaredDistanceTo(target) > reach * reach) return Result.TOO_FAR;
-        if (world.getBlockState(pos).isAir()) return Result.MISSING;
+        Vec3 target = Vec3.atCenterOf(pos);
+        Vec3 eyes = player.getEyePosition();
+        double reach = player.blockInteractionRange();
+        if (eyes.distanceToSqr(target) > reach * reach) return Result.TOO_FAR;
+        if (level.getBlockState(pos).isAir()) return Result.MISSING;
 
         // Face the block server-side before using it so anticheats that check rotation are happy.
-        Vec3d d = target.subtract(eyes);
+        Vec3 d = target.subtract(eyes);
         float yaw = (float) Math.toDegrees(Math.atan2(d.z, d.x)) - 90.0F;
         float pitch = (float) -Math.toDegrees(Math.atan2(d.y, Math.sqrt(d.x * d.x + d.z * d.z)));
-        player.setYaw(yaw);
-        player.setPitch(pitch);
-        player.networkHandler.sendPacket(
-                new PlayerMoveC2SPacket.LookAndOnGround(yaw, pitch, player.isOnGround(), player.horizontalCollision));
+        player.setYRot(yaw);
+        player.setXRot(pitch);
+        player.connection.send(
+                new ServerboundMovePlayerPacket.Rot(yaw, pitch, player.onGround(), player.horizontalCollision));
 
         BlockHitResult hit = new BlockHitResult(target, Direction.UP, pos, false);
-        ActionResult result = client.interactionManager.interactBlock(player, Hand.MAIN_HAND, hit);
-        if (!result.isAccepted()) return Result.REJECTED;
-        player.swingHand(Hand.MAIN_HAND);
+        InteractionResult result = client.gameMode.useItemOn(player, InteractionHand.MAIN_HAND, hit);
+        if (!result.consumesAction()) return Result.REJECTED;
+        player.swing(InteractionHand.MAIN_HAND);
         return Result.OK;
     }
 }

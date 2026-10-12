@@ -5,18 +5,18 @@ import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.text.ClickEvent;
-import net.minecraft.text.HoverEvent;
-import net.minecraft.text.Style;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-import net.minecraft.util.hit.BlockHitResult;
-import net.minecraft.util.hit.HitResult;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
+import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.ClickEvent;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.HoverEvent;
+import net.minecraft.network.chat.Style;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
 
-import static net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.argument;
-import static net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.literal;
+import static net.fabricmc.fabric.api.client.command.v2.ClientCommands.argument;
+import static net.fabricmc.fabric.api.client.command.v2.ClientCommands.literal;
 
 /**
  * /farex secret                              generate a random shared secret
@@ -67,12 +67,12 @@ public final class FarexCommands {
 
     private static int generateSecret(CommandContext<FabricClientCommandSource> ctx) {
         String secret = Protocol.newSecret();
-        Text clickable = Text.literal(secret).setStyle(Style.EMPTY
-                .withColor(Formatting.GOLD)
-                .withUnderline(true)
-                .withClickEvent(new ClickEvent(ClickEvent.Action.COPY_TO_CLIPBOARD, secret))
-                .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Text.literal("Click to copy"))));
-        ctx.getSource().sendFeedback(Text.literal("New secret (send it to your friend privately): ").append(clickable));
+        Component clickable = Component.literal(secret).setStyle(Style.EMPTY
+                .withColor(ChatFormatting.GOLD)
+                .withUnderlined(true)
+                .withClickEvent(new ClickEvent.CopyToClipboard(secret))
+                .withHoverEvent(new HoverEvent.ShowText(Component.literal("Click to copy"))));
+        ctx.getSource().sendFeedback(Component.literal("New secret (send it to your friend privately): ").append(clickable));
         return 1;
     }
 
@@ -80,8 +80,8 @@ public final class FarexCommands {
         FarexBot.config.loaderName = StringArgumentType.getString(ctx, "loader");
         FarexBot.config.secret = StringArgumentType.getString(ctx, "secret");
         FarexBot.config.save();
-        ctx.getSource().sendFeedback(Text.literal("Paired with loader " + FarexBot.config.loaderName
-                + ". Press your FarexBot key to pull your pearl.").formatted(Formatting.GREEN));
+        ctx.getSource().sendFeedback(Component.literal("Paired with loader " + FarexBot.config.loaderName
+                + ". Press your FarexBot key to pull your pearl.").withStyle(ChatFormatting.GREEN));
         return 1;
     }
 
@@ -89,15 +89,15 @@ public final class FarexCommands {
         String command = StringArgumentType.getString(ctx, "command");
         FarexBot.config.whisperCommand = command.startsWith("/") ? command.substring(1) : command;
         FarexBot.config.save();
-        ctx.getSource().sendFeedback(Text.literal("Whispers will use /" + FarexBot.config.whisperCommand));
+        ctx.getSource().sendFeedback(Component.literal("Whispers will use /" + FarexBot.config.whisperCommand));
         return 1;
     }
 
     private static int addChamber(CommandContext<FabricClientCommandSource> ctx) {
-        MinecraftClient client = ctx.getSource().getClient();
-        if (!(client.crosshairTarget instanceof BlockHitResult hit) || hit.getType() != HitResult.Type.BLOCK
-                || client.world == null) {
-            ctx.getSource().sendError(Text.literal("Look at the chamber's trapdoor / lever / button first."));
+        Minecraft client = ctx.getSource().getClient();
+        if (!(client.hitResult instanceof BlockHitResult hit) || hit.getType() != HitResult.Type.BLOCK
+                || client.level == null) {
+            ctx.getSource().sendError(Component.literal("Look at the chamber's trapdoor / lever / button first."));
             return 0;
         }
         String friend = StringArgumentType.getString(ctx, "friend");
@@ -109,15 +109,15 @@ public final class FarexCommands {
         BlockPos pos = hit.getBlockPos();
         chamber.friend = friend;
         chamber.secret = StringArgumentType.getString(ctx, "secret");
-        chamber.dimension = client.world.getRegistryKey().getValue().toString();
+        chamber.dimension = FarexBot.dimensionId(client.level);
         chamber.x = pos.getX();
         chamber.y = pos.getY();
         chamber.z = pos.getZ();
         FarexBot.config.save();
 
-        String block = client.world.getBlockState(pos).getBlock().getName().getString();
-        ctx.getSource().sendFeedback(Text.literal("Chamber for " + friend + " set to " + block + " at "
-                + pos.toShortString()).formatted(Formatting.GREEN));
+        String block = client.level.getBlockState(pos).getBlock().getName().getString();
+        ctx.getSource().sendFeedback(Component.literal("Chamber for " + friend + " set to " + block + " at "
+                + pos.toShortString()).withStyle(ChatFormatting.GREEN));
         return 1;
     }
 
@@ -125,12 +125,12 @@ public final class FarexCommands {
         String friend = StringArgumentType.getString(ctx, "friend");
         FarexConfig.Chamber chamber = FarexBot.config.findChamber(friend);
         if (chamber == null) {
-            ctx.getSource().sendError(Text.literal("No chamber for " + friend));
+            ctx.getSource().sendError(Component.literal("No chamber for " + friend));
             return 0;
         }
         FarexBot.config.chambers.remove(chamber);
         FarexBot.config.save();
-        ctx.getSource().sendFeedback(Text.literal("Removed chamber for " + friend));
+        ctx.getSource().sendFeedback(Component.literal("Removed chamber for " + friend));
         return 1;
     }
 
@@ -138,12 +138,12 @@ public final class FarexCommands {
         String friend = StringArgumentType.getString(ctx, "friend");
         FarexConfig.Chamber chamber = FarexBot.config.findChamber(friend);
         if (chamber == null) {
-            ctx.getSource().sendError(Text.literal("No chamber for " + friend));
+            ctx.getSource().sendError(Component.literal("No chamber for " + friend));
             return 0;
         }
         chamber.resetAfterTicks = IntegerArgumentType.getInteger(ctx, "ticks");
         FarexBot.config.save();
-        ctx.getSource().sendFeedback(Text.literal(chamber.resetAfterTicks == 0
+        ctx.getSource().sendFeedback(Component.literal(chamber.resetAfterTicks == 0
                 ? "Reset disabled for " + friend
                 : "Will flip " + friend + "'s chamber back after " + chamber.resetAfterTicks + " ticks"));
         return 1;
@@ -153,24 +153,24 @@ public final class FarexCommands {
         String friend = StringArgumentType.getString(ctx, "friend");
         FarexConfig.Chamber chamber = FarexBot.config.findChamber(friend);
         if (chamber == null) {
-            ctx.getSource().sendError(Text.literal("No chamber for " + friend));
+            ctx.getSource().sendError(Component.literal("No chamber for " + friend));
             return 0;
         }
         ChamberPuller.Result result = ChamberPuller.pull(ctx.getSource().getClient(), chamber);
-        ctx.getSource().sendFeedback(Text.literal("Test pull: " + result.code));
+        ctx.getSource().sendFeedback(Component.literal("Test pull: " + result.code));
         return result == ChamberPuller.Result.OK ? 1 : 0;
     }
 
     private static int listChambers(CommandContext<FabricClientCommandSource> ctx) {
         FarexConfig config = FarexBot.config;
-        ctx.getSource().sendFeedback(Text.literal(config.loaderName.isBlank()
+        ctx.getSource().sendFeedback(Component.literal(config.loaderName.isBlank()
                 ? "Sender: not paired"
                 : "Sender: paired with " + config.loaderName + " (whisper: /" + config.whisperCommand + ")"));
         if (config.chambers.isEmpty()) {
-            ctx.getSource().sendFeedback(Text.literal("Loader: no chambers"));
+            ctx.getSource().sendFeedback(Component.literal("Loader: no chambers"));
         }
         for (FarexConfig.Chamber c : config.chambers) {
-            ctx.getSource().sendFeedback(Text.literal(" - " + c.friend + ": " + c.x + ", " + c.y + ", " + c.z
+            ctx.getSource().sendFeedback(Component.literal(" - " + c.friend + ": " + c.x + ", " + c.y + ", " + c.z
                     + " in " + c.dimension + (c.resetAfterTicks > 0 ? " (reset " + c.resetAfterTicks + "t)" : "")));
         }
         return 1;

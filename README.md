@@ -1,6 +1,6 @@
 # FarexBot
 
-A client-side Fabric mod for **Minecraft 1.21.4**. Your friend presses a key, and your account (AFK at their
+A client-side Fabric mod for **Minecraft 26.3**. Your friend presses a key, and your account (AFK at their
 ender pearl stasis chamber) flips the chamber's trapdoor/lever the instant the request arrives, so they
 teleport back.
 
@@ -47,7 +47,7 @@ Settings are stored in `config/farexbot.json`.
 ```
 
 The jar is written to `build/libs/`. GitHub Actions also builds every push, and the jar is uploaded as the
-`farexbot-jar` artifact. Install it with Fabric Loader and Fabric API for 1.21.4.
+`farexbot-jar` artifact. Install it with Fabric Loader and Fabric API for 26.3 (Java 25).
 
 ## Notes
 
