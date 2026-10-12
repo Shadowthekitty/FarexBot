@@ -1,0 +1,16 @@
+name: versions
+on: [push]
+jobs:
+  versions:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo "== game"; curl -s https://meta.fabricmc.net/v2/versions/game | jq -r '.[0:12][] | "\(.version) \(.stable)"'
+          echo "== loader"; curl -s https://meta.fabricmc.net/v2/versions/loader | jq -r '.[0:3][].version'
+          echo "== fabric-api 26.3"; curl -s https://maven.fabricmc.net/net/fabricmc/fabric-api/fabric-api/maven-metadata.xml | grep -o '<version>[^<]*26\.3[^<]*</version>' | tail -5
+          echo "== loom"; curl -s https://maven.fabricmc.net/net/fabricmc/fabric-loom/net.fabricmc.fabric-loom.gradle.plugin/maven-metadata.xml | grep -o '<version>[^<]*</version>' | tail -6
+          echo "== loom-remap"; curl -s https://maven.fabricmc.net/fabric-loom/fabric-loom.gradle.plugin/maven-metadata.xml | grep -o '<version>[^<]*</version>' | tail -3
+          for f in build.gradle settings.gradle gradle.properties gradle/wrapper/gradle-wrapper.properties src/main/resources/fabric.mod.json; do
+            echo "== template $f"; curl -s https://raw.githubusercontent.com/FabricMC/fabric-example-mod/26.3/$f || true
+          done
+          echo "== branches"; curl -s https://api.github.com/repos/FabricMC/fabric-example-mod/branches | jq -r '.[].name'
