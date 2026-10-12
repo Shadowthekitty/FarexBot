@@ -90,8 +90,6 @@ public final class ChamberPuller {
 
         BlockHitResult hit = new BlockHitResult(target, Direction.UP, pos, false);
         InteractionResult result = client.gameMode.useItemOn(player, InteractionHand.MAIN_HAND, hit);
-        if (!result.consumesAction()) return Result.REJECTED;
-        player.swing(InteractionHand.MAIN_HAND);
-        return Result.OK;
+        return result.consumesAction() ? Result.OK : Result.REJECTED;
     }
 }

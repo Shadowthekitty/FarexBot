@@ -14,7 +14,6 @@ import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.Level;
-import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,7 +39,7 @@ public class FarexBot implements ClientModInitializer {
 
         KeyMapping.Category category = KeyMapping.Category.register(Identifier.fromNamespaceAndPath(MOD_ID, MOD_ID));
         pullKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
-                "key.farexbot.pull", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_G, category));
+                "key.farexbot.pull", InputConstants.Type.KEYBOARD, InputConstants.KEY_G, category));
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             while (pullKey.consumeClick()) {
@@ -145,8 +144,8 @@ public class FarexBot implements ClientModInitializer {
 
     public static void notify(Minecraft client, Component text) {
         if (client.player != null) {
-            client.player.displayClientMessage(
-                    Component.literal("[FarexBot] ").withStyle(ChatFormatting.AQUA).append(text), false);
+            client.player.sendSystemMessage(
+                    Component.literal("[FarexBot] ").withStyle(ChatFormatting.AQUA).append(text));
         }
     }
 
