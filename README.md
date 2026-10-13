@@ -7,6 +7,11 @@ teleport back.
 Both of you install the same jar. No port forwarding or extra server is needed: the request goes through a
 normal in-game whisper (`/msg`) and is hidden from chat on both sides.
 
+## Download
+
+**[farexbot.jar](https://github.com/Shadowthekitty/FarexBot/releases/download/latest/farexbot.jar)**: always the
+newest build, and no GitHub account is needed. Put it in `.minecraft/mods` together with Fabric API.
+
 ## How it works
 
 1. Your friend presses the **FarexBot key** (default `G`, rebindable in Controls).

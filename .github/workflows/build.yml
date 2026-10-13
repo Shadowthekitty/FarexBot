@@ -1,6 +1,9 @@
 name: build
 on: [push, pull_request, workflow_dispatch]
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -16,3 +19,14 @@ jobs:
         with:
           name: farexbot-jar
           path: build/libs/farexbot-*.jar
+      # Republish the "latest" release so https://github.com/<repo>/releases/download/latest/farexbot.jar
+      # always points at the newest build. Downloading it needs no GitHub account.
+      - name: Publish latest release
+        if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp build/libs/farexbot-*.jar farexbot.jar
+          gh release delete latest --yes --cleanup-tag || true
+          gh release create latest farexbot.jar --target "$GITHUB_SHA" --title "FarexBot (latest build)" \
+            --notes "Built from ${GITHUB_SHA::7}. Requires Minecraft 26.3, Fabric Loader 0.19.5+ and Fabric API 0.162.0+26.3. Drop farexbot.jar into .minecraft/mods."
