@@ -7,6 +7,7 @@ import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallba
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
@@ -243,6 +244,12 @@ public class FarexBot implements ClientModInitializer {
             client.player.sendSystemMessage(
                     Component.literal("[FarexBot] ").withStyle(ChatFormatting.AQUA).append(text));
         }
+    }
+
+    public static String version() {
+        return FabricLoader.getInstance().getModContainer(MOD_ID)
+                .map(mod -> mod.getMetadata().getVersion().getFriendlyString())
+                .orElse("unknown");
     }
 
     static String playerName(LocalPlayer player) {

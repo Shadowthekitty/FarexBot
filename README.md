@@ -9,8 +9,9 @@ normal in-game whisper (`/msg`) and is hidden from chat on both sides.
 
 ## Download
 
-**[farexbot.jar](https://github.com/Shadowthekitty/FarexBot/releases/download/latest/farexbot.jar)**: always the
-newest build, and no GitHub account is needed. Put it in `.minecraft/mods` together with Fabric API.
+**[Latest release](https://github.com/Shadowthekitty/FarexBot/releases/latest)**: every build is published as a
+numbered version (`1.1.<build>`) with a list of its changes. Put the jar in `.minecraft/mods` together with Fabric
+API. Check which version you have in game with `/farex version`.
 
 ## How it works
 
@@ -54,7 +55,7 @@ The loader keeps the chamber's position either way. To re-pair later, generate a
 `/farex chamber pair <friend> <secret>` (no need to go back to the chamber), and the friend runs
 `/farex pair` again.
 
-**Other commands:** `/farex chamber list`, `/farex chamber remove <friend>` (removes it without telling them), and `/farex whisper <cmd>` if
+**Other commands:** `/farex version`, `/farex chamber list`, `/farex chamber remove <friend>` (removes it without telling them), and `/farex whisper <cmd>` if
 the server uses `/w`, `/tell` or similar instead of `/msg`.
 
 Settings are stored in `config/farexbot.json`.

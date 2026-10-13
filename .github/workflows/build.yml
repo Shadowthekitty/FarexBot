@@ -9,6 +9,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # full history + tags, for the release changelog
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
@@ -19,14 +21,29 @@ jobs:
         with:
           name: farexbot-jar
           path: build/libs/farexbot-*.jar
-      # Republish the "latest" release so https://github.com/<repo>/releases/download/latest/farexbot.jar
-      # always points at the newest build. Downloading it needs no GitHub account.
-      - name: Publish latest release
+      # Every build becomes its own numbered release (v1.1.<run number>), marked as the latest one.
+      # https://github.com/<repo>/releases/latest always opens the newest version.
+      - name: Publish release
         if: github.event_name != 'pull_request'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          cp build/libs/farexbot-*.jar farexbot.jar
+          jar=$(ls build/libs/farexbot-*.jar | grep -v -- '-sources' | head -1)
+          version=$(basename "$jar" .jar | sed 's/^farexbot-//')
+          prev=$(git tag --list 'v*' --sort=-v:refname | head -1)
+          {
+            echo "**FarexBot $version** for Minecraft 26.3"
+            echo
+            echo "Requires Fabric Loader 0.19.5+ and Fabric API 0.162.0+26.3. Drop the jar into \`.minecraft/mods\`."
+            echo
+            echo "### Changes"
+            if [ -n "$prev" ]; then
+              git log --no-merges --format='- %s' "$prev..$GITHUB_SHA"
+            else
+              git log --no-merges --format='- %s' "$GITHUB_SHA"
+            fi
+          } > notes.md
+          gh release create "v$version" "$jar" --target "$GITHUB_SHA" --title "FarexBot $version" \
+            --notes-file notes.md --latest
+          # Remove the old rolling "latest" release from before versioned releases.
           gh release delete latest --yes --cleanup-tag || true
-          gh release create latest farexbot.jar --target "$GITHUB_SHA" --title "FarexBot (latest build)" \
-            --notes "Built from ${GITHUB_SHA::7}. Requires Minecraft 26.3, Fabric Loader 0.19.5+ and Fabric API 0.162.0+26.3. Drop farexbot.jar into .minecraft/mods."

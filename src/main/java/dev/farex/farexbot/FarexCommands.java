@@ -19,6 +19,7 @@ import static net.fabricmc.fabric.api.client.command.v2.ClientCommands.argument;
 import static net.fabricmc.fabric.api.client.command.v2.ClientCommands.literal;
 
 /**
+ * /farex version                             show the installed version
  * /farex secret                              generate a random shared secret
  * /farex pair &lt;loader&gt; &lt;secret&gt;            (sender) who pulls my chamber
  * /farex pull                                (sender) same as the keybind
@@ -38,6 +39,10 @@ public final class FarexCommands {
 
     public static void register(CommandDispatcher<FabricClientCommandSource> dispatcher) {
         dispatcher.register(literal("farex")
+                .then(literal("version").executes(ctx -> {
+                    ctx.getSource().sendFeedback(Component.literal("FarexBot " + FarexBot.version()));
+                    return 1;
+                }))
                 .then(literal("secret").executes(FarexCommands::generateSecret))
                 .then(literal("pair")
                         .then(argument("loader", StringArgumentType.word())

@@ -2,7 +2,8 @@ plugins {
     id 'net.fabricmc.fabric-loom' version "${loom_version}"
 }
 
-version = project.mod_version
+def buildNumber = System.getenv("GITHUB_RUN_NUMBER")
+version = buildNumber ? "${project.mod_version}.${buildNumber}" : "${project.mod_version}-dev"
 group = project.maven_group
 
 base {
