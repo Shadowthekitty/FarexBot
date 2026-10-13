@@ -23,7 +23,8 @@ import static net.fabricmc.fabric.api.client.command.v2.ClientCommands.literal;
  * /farex pair &lt;loader&gt; &lt;secret&gt;            (sender) who pulls my chamber
  * /farex pull                                (sender) same as the keybind
  * /farex unpair                              (sender) forget my loader and tell them
- * /farex unpair &lt;friend&gt;                     (loader) drop a friend's chamber and tell them
+ * /farex unpair &lt;friend&gt;                     (loader) unpair a friend (chamber kept) and tell them
+ * /farex chamber pair &lt;friend&gt; &lt;secret&gt;     (loader) re-pair a kept chamber
  * /farex whisper &lt;command&gt;                  whisper command used on this server
  * /farex chamber add &lt;friend&gt; &lt;secret&gt;      (loader) register the block you are looking at
  * /farex chamber remove &lt;friend&gt;
@@ -58,6 +59,10 @@ public final class FarexCommands {
                                 .then(argument("friend", StringArgumentType.word())
                                         .then(argument("secret", StringArgumentType.word())
                                                 .executes(FarexCommands::addChamber))))
+                        .then(literal("pair")
+                                .then(argument("friend", StringArgumentType.word())
+                                        .then(argument("secret", StringArgumentType.word())
+                                                .executes(FarexCommands::repairChamber))))
                         .then(literal("remove")
                                 .then(argument("friend", StringArgumentType.word())
                                         .executes(FarexCommands::removeChamber)))
@@ -106,11 +111,12 @@ public final class FarexCommands {
     private static int unpairFriend(CommandContext<FabricClientCommandSource> ctx) {
         String friend = StringArgumentType.getString(ctx, "friend");
         if (!FarexBot.unpairFriend(ctx.getSource().getClient(), friend)) {
-            ctx.getSource().sendError(Component.literal("No chamber for " + friend));
+            ctx.getSource().sendError(Component.literal("No paired chamber for " + friend));
             return 0;
         }
-        ctx.getSource().sendFeedback(Component.literal("Unpaired " + friend + " and removed their chamber."
-                + " They have been told too.").withStyle(ChatFormatting.GOLD));
+        ctx.getSource().sendFeedback(Component.literal("Unpaired " + friend + " and told them. Their chamber"
+                + " position is kept; re-pair with /farex chamber pair " + friend + " <secret>")
+                .withStyle(ChatFormatting.GOLD));
         return 1;
     }
 
@@ -147,6 +153,21 @@ public final class FarexCommands {
         String block = client.level.getBlockState(pos).getBlock().getName().getString();
         ctx.getSource().sendFeedback(Component.literal("Chamber for " + friend + " set to " + block + " at "
                 + pos.toShortString()).withStyle(ChatFormatting.GREEN));
+        return 1;
+    }
+
+    private static int repairChamber(CommandContext<FabricClientCommandSource> ctx) {
+        String friend = StringArgumentType.getString(ctx, "friend");
+        FarexConfig.Chamber chamber = FarexBot.config.findChamber(friend);
+        if (chamber == null) {
+            ctx.getSource().sendError(Component.literal("No chamber for " + friend
+                    + ". Look at it and use /farex chamber add " + friend + " <secret>"));
+            return 0;
+        }
+        chamber.secret = StringArgumentType.getString(ctx, "secret");
+        FarexBot.config.save();
+        ctx.getSource().sendFeedback(Component.literal("Re-paired " + chamber.friend + "'s chamber at "
+                + chamber.x + ", " + chamber.y + ", " + chamber.z).withStyle(ChatFormatting.GREEN));
         return 1;
     }
 
@@ -200,7 +221,7 @@ public final class FarexCommands {
         }
         for (FarexConfig.Chamber c : config.chambers) {
             ctx.getSource().sendFeedback(Component.literal(" - " + c.friend + ": " + c.x + ", " + c.y + ", " + c.z
-                    + " in " + c.dimension + (c.resetAfterTicks > 0 ? " (reset " + c.resetAfterTicks + "t)" : "")));
+                    + " in " + c.dimension + (c.secret == null ? " (unpaired)" : "") + (c.resetAfterTicks > 0 ? " (reset " + c.resetAfterTicks + "t)" : "")));
         }
         return 1;
     }

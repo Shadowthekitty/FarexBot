@@ -47,8 +47,12 @@ with the same secret, then press `G`. The mod skips the whisper and runs the loa
 the key, signature and click. Testing the whisper itself needs two accounts.
 
 **Unpairing:** either side can end it, and the other side is told automatically (with a signed whisper):
-- Friend: `/farex unpair` forgets the loader, and the loader drops your chamber.
-- Loader: `/farex unpair <friend>` drops that friend's chamber, and the friend's pairing is cleared.
+- Friend: `/farex unpair` forgets the loader, and the loader stops pulling your chamber.
+- Loader: `/farex unpair <friend>` stops pulling that friend's chamber, and the friend's pairing is cleared.
+
+The loader keeps the chamber's position either way. To re-pair later, generate a new secret and run
+`/farex chamber pair <friend> <secret>` (no need to go back to the chamber), and the friend runs
+`/farex pair` again.
 
 **Other commands:** `/farex chamber list`, `/farex chamber remove <friend>` (removes it without telling them), and `/farex whisper <cmd>` if
 the server uses `/w`, `/tell` or similar instead of `/msg`.

@@ -133,7 +133,12 @@ public class FarexBot implements ClientModInitializer {
         if (player == null) return;
 
         FarexConfig.Chamber chamber = config.findChamber(pull.sender());
-        if (chamber == null || chamber.secret == null) {
+        if (chamber != null && chamber.secret == null) {
+            notify(client, Component.literal("Got a pull request from " + pull.sender() + " but you are unpaired."
+                    + " Re-pair with /farex chamber pair " + pull.sender() + " <secret>").withStyle(ChatFormatting.RED));
+            return;
+        }
+        if (chamber == null) {
             notify(client, Component.literal("Got a pull request from " + pull.sender()
                     + " but you have no chamber for them. Use /farex chamber add " + pull.sender() + " <secret>")
                     .withStyle(ChatFormatting.RED));
@@ -171,15 +176,15 @@ public class FarexBot implements ClientModInitializer {
         return true;
     }
 
-    /** Loader side: drop a friend's chamber, and tell them to forget us. */
+    /** Loader side: unpair a friend (their chamber position is kept), and tell them to forget us. */
     public static boolean unpairFriend(Minecraft client, String friend) {
         FarexConfig.Chamber chamber = config.findChamber(friend);
-        if (chamber == null) return false;
+        if (chamber == null || chamber.secret == null) return false;
         LocalPlayer player = client.player;
         if (player != null && chamber.secret != null && !chamber.friend.equalsIgnoreCase(playerName(player))) {
             whisper(player, chamber.friend, Protocol.buildUnpair(playerName(player), chamber.friend, chamber.secret));
         }
-        config.chambers.remove(chamber);
+        chamber.secret = null;
         config.save();
         return true;
     }
@@ -203,12 +208,13 @@ public class FarexBot implements ClientModInitializer {
                     .withStyle(ChatFormatting.GOLD));
             return;
         }
-        // A friend no longer wants us to load their chamber.
+        // A friend no longer wants us to load their chamber. Keep its position so re-pairing is easy.
         FarexConfig.Chamber chamber = config.findChamber(unpair.sender());
         if (chamber != null && chamber.secret != null && Protocol.verifyUnpair(unpair, self, chamber.secret)) {
-            config.chambers.remove(chamber);
+            chamber.secret = null;
             config.save();
-            notify(client, Component.literal(chamber.friend + " unpaired. Their chamber was removed.")
+            notify(client, Component.literal(chamber.friend + " unpaired. Their chamber is kept but won't be"
+                    + " pulled until you re-pair with /farex chamber pair " + chamber.friend + " <secret>")
                     .withStyle(ChatFormatting.GOLD));
         }
     }
