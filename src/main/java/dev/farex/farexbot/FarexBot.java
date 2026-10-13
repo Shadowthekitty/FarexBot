@@ -86,7 +86,7 @@ public class FarexBot implements ClientModInitializer {
 
         PENDING_ACKS.values().removeIf(sentAt -> now - sentAt > ACK_TIMEOUT_MS);
         PENDING_ACKS.put(nonce, now);
-        player.connection.sendCommand(config.whisperCommand + " " + config.loaderName + " " + payload);
+        whisper(player, config.loaderName, payload);
         notify(client, Component.literal("Pearl request sent to " + config.loaderName + "...")
                 .withStyle(ChatFormatting.YELLOW));
     }
@@ -97,6 +97,11 @@ public class FarexBot implements ClientModInitializer {
         Protocol.Pull pull = Protocol.parsePull(text);
         if (pull != null) {
             onPull(pull, sender);
+            return !config.hideMessages;
+        }
+        Protocol.Pull unpair = Protocol.parseUnpair(text);
+        if (unpair != null) {
+            onUnpair(unpair, sender);
             return !config.hideMessages;
         }
         Protocol.Ack ack = Protocol.parseAck(text);
@@ -148,8 +153,68 @@ public class FarexBot implements ClientModInitializer {
 
         if (config.sendAck && !selfTest) {
             String ack = Protocol.buildAck(pull.nonce(), result.code, chamber.secret);
-            player.connection.sendCommand(config.whisperCommand + " " + chamber.friend + " " + ack);
+            whisper(player, chamber.friend, ack);
         }
+    }
+
+    /** Friend side: forget our loader, and tell them to drop our chamber. */
+    public static boolean unpairFromLoader(Minecraft client) {
+        if (config.loaderName.isBlank()) return false;
+        LocalPlayer player = client.player;
+        String loader = config.loaderName;
+        if (player != null && !config.secret.isBlank() && !loader.equalsIgnoreCase(playerName(player))) {
+            whisper(player, loader, Protocol.buildUnpair(playerName(player), loader, config.secret));
+        }
+        config.loaderName = "";
+        config.secret = "";
+        config.save();
+        return true;
+    }
+
+    /** Loader side: drop a friend's chamber, and tell them to forget us. */
+    public static boolean unpairFriend(Minecraft client, String friend) {
+        FarexConfig.Chamber chamber = config.findChamber(friend);
+        if (chamber == null) return false;
+        LocalPlayer player = client.player;
+        if (player != null && chamber.secret != null && !chamber.friend.equalsIgnoreCase(playerName(player))) {
+            whisper(player, chamber.friend, Protocol.buildUnpair(playerName(player), chamber.friend, chamber.secret));
+        }
+        config.chambers.remove(chamber);
+        config.save();
+        return true;
+    }
+
+    /** Either side: the other player unpaired from us. */
+    private static void onUnpair(Protocol.Pull unpair, GameProfile sender) {
+        Minecraft client = Minecraft.getInstance();
+        LocalPlayer player = client.player;
+        if (player == null) return;
+        String self = playerName(player);
+        if (unpair.sender().equalsIgnoreCase(self)) return;
+        if (sender != null && !sender.name().equalsIgnoreCase(unpair.sender())) return;
+
+        // Our loader stopped loading for us.
+        if (unpair.sender().equalsIgnoreCase(config.loaderName) && !config.secret.isBlank()
+                && Protocol.verifyUnpair(unpair, self, config.secret)) {
+            config.loaderName = "";
+            config.secret = "";
+            config.save();
+            notify(client, Component.literal(unpair.sender() + " unpaired from you. Your chamber will no longer be pulled.")
+                    .withStyle(ChatFormatting.GOLD));
+            return;
+        }
+        // A friend no longer wants us to load their chamber.
+        FarexConfig.Chamber chamber = config.findChamber(unpair.sender());
+        if (chamber != null && chamber.secret != null && Protocol.verifyUnpair(unpair, self, chamber.secret)) {
+            config.chambers.remove(chamber);
+            config.save();
+            notify(client, Component.literal(chamber.friend + " unpaired. Their chamber was removed.")
+                    .withStyle(ChatFormatting.GOLD));
+        }
+    }
+
+    private static void whisper(LocalPlayer player, String target, String payload) {
+        player.connection.sendCommand(config.whisperCommand + " " + target + " " + payload);
     }
 
     /** Sender side. */

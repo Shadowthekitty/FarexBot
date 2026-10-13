@@ -22,6 +22,8 @@ import static net.fabricmc.fabric.api.client.command.v2.ClientCommands.literal;
  * /farex secret                              generate a random shared secret
  * /farex pair &lt;loader&gt; &lt;secret&gt;            (sender) who pulls my chamber
  * /farex pull                                (sender) same as the keybind
+ * /farex unpair                              (sender) forget my loader and tell them
+ * /farex unpair &lt;friend&gt;                     (loader) drop a friend's chamber and tell them
  * /farex whisper &lt;command&gt;                  whisper command used on this server
  * /farex chamber add &lt;friend&gt; &lt;secret&gt;      (loader) register the block you are looking at
  * /farex chamber remove &lt;friend&gt;
@@ -40,6 +42,10 @@ public final class FarexCommands {
                         .then(argument("loader", StringArgumentType.word())
                                 .then(argument("secret", StringArgumentType.word())
                                         .executes(FarexCommands::pair))))
+                .then(literal("unpair")
+                        .executes(FarexCommands::unpairLoader)
+                        .then(argument("friend", StringArgumentType.word())
+                                .executes(FarexCommands::unpairFriend)))
                 .then(literal("pull").executes(ctx -> {
                     FarexBot.requestPull(ctx.getSource().getClient());
                     return 1;
@@ -82,6 +88,29 @@ public final class FarexCommands {
         FarexBot.config.save();
         ctx.getSource().sendFeedback(Component.literal("Paired with loader " + FarexBot.config.loaderName
                 + ". Press your FarexBot key to pull your pearl.").withStyle(ChatFormatting.GREEN));
+        return 1;
+    }
+
+    private static int unpairLoader(CommandContext<FabricClientCommandSource> ctx) {
+        String loader = FarexBot.config.loaderName;
+        if (!FarexBot.unpairFromLoader(ctx.getSource().getClient())) {
+            ctx.getSource().sendError(Component.literal("You are not paired with a loader."
+                    + " To drop a friend's chamber use /farex unpair <friend>"));
+            return 0;
+        }
+        ctx.getSource().sendFeedback(Component.literal("Unpaired from " + loader + ". They have been told to drop"
+                + " your chamber.").withStyle(ChatFormatting.GOLD));
+        return 1;
+    }
+
+    private static int unpairFriend(CommandContext<FabricClientCommandSource> ctx) {
+        String friend = StringArgumentType.getString(ctx, "friend");
+        if (!FarexBot.unpairFriend(ctx.getSource().getClient(), friend)) {
+            ctx.getSource().sendError(Component.literal("No chamber for " + friend));
+            return 0;
+        }
+        ctx.getSource().sendFeedback(Component.literal("Unpaired " + friend + " and removed their chamber."
+                + " They have been told too.").withStyle(ChatFormatting.GOLD));
         return 1;
     }
 

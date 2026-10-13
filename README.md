@@ -46,7 +46,11 @@ Other players can't set off your chambers by whispering you.
 with the same secret, then press `G`. The mod skips the whisper and runs the loader side locally, which checks
 the key, signature and click. Testing the whisper itself needs two accounts.
 
-**Other commands:** `/farex chamber list`, `/farex chamber remove <friend>`, and `/farex whisper <cmd>` if
+**Unpairing:** either side can end it, and the other side is told automatically (with a signed whisper):
+- Friend: `/farex unpair` forgets the loader, and the loader drops your chamber.
+- Loader: `/farex unpair <friend>` drops that friend's chamber, and the friend's pairing is cleared.
+
+**Other commands:** `/farex chamber list`, `/farex chamber remove <friend>` (removes it without telling them), and `/farex whisper <cmd>` if
 the server uses `/w`, `/tell` or similar instead of `/msg`.
 
 Settings are stored in `config/farexbot.json`.
