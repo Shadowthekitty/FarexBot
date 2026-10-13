@@ -72,8 +72,18 @@ public class FarexBot implements ClientModInitializer {
         if (now - lastSentAt < SEND_COOLDOWN_MS) return;
         lastSentAt = now;
 
+        String self = playerName(player);
         String nonce = Protocol.newNonce();
-        String payload = Protocol.buildPull(playerName(player), config.loaderName, config.secret, nonce);
+        String payload = Protocol.buildPull(self, config.loaderName, config.secret, nonce);
+
+        // Self-test: paired with our own name, so skip the whisper and run the loader side locally.
+        if (config.loaderName.equalsIgnoreCase(self)) {
+            notify(client, Component.literal("Self-test: you are your own loader, pulling locally...")
+                    .withStyle(ChatFormatting.YELLOW));
+            executePull(Protocol.parsePull(payload), true);
+            return;
+        }
+
         PENDING_ACKS.values().removeIf(sentAt -> now - sentAt > ACK_TIMEOUT_MS);
         PENDING_ACKS.put(nonce, now);
         player.connection.sendCommand(config.whisperCommand + " " + config.loaderName + " " + payload);
@@ -97,22 +107,37 @@ public class FarexBot implements ClientModInitializer {
         return true;
     }
 
-    /** Loader side. */
+    /** Loader side: a pull request arrived in chat. */
     private static void onPull(Protocol.Pull pull, GameProfile sender) {
+        LocalPlayer player = Minecraft.getInstance().player;
+        if (player == null) return;
+
+        // Our own outgoing whisper echoed back to us.
+        if (pull.sender().equalsIgnoreCase(playerName(player))) return;
+        // When the server tells us who really sent it, it must match the claimed name.
+        if (sender != null && !sender.name().equalsIgnoreCase(pull.sender())) {
+            LOGGER.warn("Pull claiming to be from {} was actually sent by {}", pull.sender(), sender.name());
+            return;
+        }
+        executePull(pull, false);
+    }
+
+    private static void executePull(Protocol.Pull pull, boolean selfTest) {
         Minecraft client = Minecraft.getInstance();
         LocalPlayer player = client.player;
         if (player == null) return;
-        String self = playerName(player);
-
-        // Our own outgoing whisper echoed back to us.
-        if (pull.sender().equalsIgnoreCase(self)) return;
-        // When the server tells us who really sent it, it must match the claimed name.
-        if (sender != null && !sender.name().equalsIgnoreCase(pull.sender())) return;
 
         FarexConfig.Chamber chamber = config.findChamber(pull.sender());
-        if (chamber == null || chamber.secret == null) return;
-        if (!Protocol.verifyPull(pull, self, chamber.secret)) {
-            LOGGER.warn("Rejected pull request claiming to be from {}", pull.sender());
+        if (chamber == null || chamber.secret == null) {
+            notify(client, Component.literal("Got a pull request from " + pull.sender()
+                    + " but you have no chamber for them. Use /farex chamber add " + pull.sender() + " <secret>")
+                    .withStyle(ChatFormatting.RED));
+            return;
+        }
+        if (!Protocol.verifyPull(pull, playerName(player), chamber.secret)) {
+            notify(client, Component.literal("Rejected pull from " + pull.sender()
+                    + ": the secrets don't match, they paired with a different loader name, or your PC clocks"
+                    + " are more than a minute apart.").withStyle(ChatFormatting.RED));
             return;
         }
 
@@ -121,7 +146,7 @@ public class FarexBot implements ClientModInitializer {
         ChatFormatting color = result == ChamberPuller.Result.OK ? ChatFormatting.GREEN : ChatFormatting.RED;
         notify(client, Component.literal("Pulled " + chamber.friend + "'s chamber: " + result.code).withStyle(color));
 
-        if (config.sendAck) {
+        if (config.sendAck && !selfTest) {
             String ack = Protocol.buildAck(pull.nonce(), result.code, chamber.secret);
             player.connection.sendCommand(config.whisperCommand + " " + chamber.friend + " " + ack);
         }

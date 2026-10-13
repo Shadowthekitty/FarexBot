@@ -42,6 +42,10 @@ Other players can't set off your chambers by whispering you.
 1. `/farex pair <LoaderName> <secret>`
 2. Throw a pearl into the chamber, go wherever you like, and press `G` (or run `/farex pull`) to come back.
 
+**Testing on one account:** run `/farex pair <YourOwnName> <secret>` and `/farex chamber add <YourOwnName> <secret>`
+with the same secret, then press `G`. The mod skips the whisper and runs the loader side locally, which checks
+the key, signature and click. Testing the whisper itself needs two accounts.
+
 **Other commands:** `/farex chamber list`, `/farex chamber remove <friend>`, and `/farex whisper <cmd>` if
 the server uses `/w`, `/tell` or similar instead of `/msg`.
 
