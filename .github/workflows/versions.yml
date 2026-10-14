@@ -8,15 +8,14 @@ jobs:
         with: { distribution: temurin, java-version: 25 }
       - run: |
           url=$(curl -s https://piston-meta.mojang.com/mc/game/version_manifest_v2.json | jq -r '.versions[] | select(.id=="26.3") | .url')
-          meta=$(curl -s $url)
-          curl -s "$(echo "$meta" | jq -r .downloads.client.url)" -o client.jar
-          curl -s "$(echo "$meta" | jq -r .downloads.server.url)" -o server-bundle.jar
-          mkdir sb && (cd sb && unzip -q ../server-bundle.jar) && srv=$(ls sb/META-INF/versions/*/*.jar | head -1); echo "server: $srv"
-          echo "== lang"; unzip -p client.jar assets/minecraft/lang/en_us.json | grep -i 'sequence\|out_of_order\|chat_validation\|disconnect.chat'
-          echo "== string search server"
-          mkdir sc && (cd sc && unzip -q "../$srv" 'net/minecraft/server/network/*')
-          for f in sc/net/minecraft/server/network/*.class; do c=$(echo $f | sed 's#sc/##; s#\.class##; s#/#.#g'); javap -c -constants -p -cp sc "$c" 2>/dev/null | grep -i 'sequence' | sed "s#^#$c: #" | head -20; done
-          echo "== MultiPlayerGameMode useItemOn/startPrediction"
-          javap -c -p -cp client.jar net.minecraft.client.multiplayer.MultiPlayerGameMode | grep -A40 'InteractionResult useItemOn(' | head -60
-          echo "== Minecraft tick order"
-          javap -c -p -cp client.jar net.minecraft.client.Minecraft | grep -A200 'public void tick();' | grep -E 'invoke' | head -60
+          curl -s "$(curl -s $url | jq -r .downloads.client.url)" -o client.jar
+          echo "== startUseItem"
+          javap -c -p -cp client.jar net.minecraft.client.Minecraft | awk '/private void startUseItem\(\)/,/^$/' | grep -E 'invoke|getstatic|iconst|areturn|instanceof' | head -80
+          echo "== LivingEntity.swing"
+          javap -c -p -cp client.jar net.minecraft.world.entity.LivingEntity | awk '/public boolean swing\(/,/^$/' | grep -E 'invoke|getfield|iload|ifeq|ifne' | head -40
+          echo "== LocalPlayer swing"
+          javap -c -p -cp client.jar net.minecraft.client.player.LocalPlayer | grep -A30 'swing(' | grep -E 'swing|invoke' | head -20
+          echo "== InteractionResult"
+          javap -cp client.jar 'net.minecraft.world.InteractionResult$Success' 'net.minecraft.world.InteractionResult$SwingSource'
+          echo "== tick end packet"
+          javap -c -p -cp client.jar net.minecraft.client.Minecraft | grep -n 'ClientTickEnd'; javap -c -p -cp client.jar net.minecraft.client.multiplayer.ClientPacketListener | grep -n 'ClientTickEnd'
