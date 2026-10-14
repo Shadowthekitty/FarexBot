@@ -17,9 +17,11 @@ API. Check which version you have in game with `/farex version`.
 
 1. Your friend presses the **FarexBot key** (default `G`, rebindable in Controls).
 2. Their client whispers you a signed message like `fxp1 Friend 1791848581 9c1d86c8 5f09fdeb2d81e0a3`.
-3. Your client checks the signature against the secret you share, then in the same tick turns to face the
-   chamber block and right-clicks it: one rotation packet and one use packet. The click is ray-traced like a
-   real one (the face and point your crosshair actually lands on), and is refused if a block is in the way.
+3. Your client checks the signature against the secret you share, turns to face the chamber block, and
+   right-clicks it on the next tick (50-100 ms in total). It sends exactly the packets a normal right-click does,
+   in the same order: rotation through the regular movement update, then the use packet and the arm swing. The
+   click is ray-traced like a real one (the face and point your crosshair actually lands on), and is refused if
+   a block is in the way.
 4. Your client whispers back a signed result, and your friend sees "Pearl pulled!" or the reason it failed.
 
 Requests are signed with HMAC-SHA256 and a per-friend secret, expire after 60 seconds, and can't be replayed.

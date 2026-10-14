@@ -42,11 +42,12 @@ public class FarexBot implements ClientModInitializer {
         pullKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
                 "key.farexbot.pull", InputConstants.Type.KEYBOARD, InputConstants.KEY_G, category));
 
+        // Chamber clicks run at the start of the tick, where vanilla handles input.
+        ClientTickEvents.START_CLIENT_TICK.register(ChamberPuller::tick);
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             while (pullKey.consumeClick()) {
                 requestPull(client);
             }
-            ChamberPuller.tick(client);
         });
 
         // Vanilla /msg arrives as a chat message with a verified sender profile.
@@ -152,15 +153,17 @@ public class FarexBot implements ClientModInitializer {
             return;
         }
 
-        ChamberPuller.Result result = ChamberPuller.pull(client, chamber);
-        LOGGER.info("Pull for {}: {}", chamber.friend, result);
-        ChatFormatting color = result == ChamberPuller.Result.OK ? ChatFormatting.GREEN : ChatFormatting.RED;
-        notify(client, Component.literal("Pulled " + chamber.friend + "'s chamber: " + result.code).withStyle(color));
+        ChamberPuller.pull(chamber, result -> {
+            LOGGER.info("Pull for {}: {}", chamber.friend, result);
+            ChatFormatting color = result == ChamberPuller.Result.OK ? ChatFormatting.GREEN : ChatFormatting.RED;
+            notify(client, Component.literal("Pulled " + chamber.friend + "'s chamber: " + result.code)
+                    .withStyle(color));
 
-        if (config.sendAck && !selfTest) {
-            String ack = Protocol.buildAck(pull.nonce(), result.code, chamber.secret);
-            whisper(player, chamber.friend, ack);
-        }
+            LocalPlayer current = client.player;
+            if (config.sendAck && !selfTest && current != null) {
+                whisper(current, chamber.friend, Protocol.buildAck(pull.nonce(), result.code, chamber.secret));
+            }
+        });
     }
 
     /** Friend side: forget our loader, and tell them to drop our chamber. */

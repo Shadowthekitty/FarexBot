@@ -211,9 +211,10 @@ public final class FarexCommands {
             ctx.getSource().sendError(Component.literal("No chamber for " + friend));
             return 0;
         }
-        ChamberPuller.Result result = ChamberPuller.pull(ctx.getSource().getClient(), chamber);
-        ctx.getSource().sendFeedback(Component.literal("Test pull: " + result.code));
-        return result == ChamberPuller.Result.OK ? 1 : 0;
+        Minecraft client = ctx.getSource().getClient();
+        ChamberPuller.pull(chamber, result -> FarexBot.notify(client, Component.literal("Test pull: " + result.code)
+                .withStyle(result == ChamberPuller.Result.OK ? ChatFormatting.GREEN : ChatFormatting.RED)));
+        return 1;
     }
 
     private static int listChambers(CommandContext<FabricClientCommandSource> ctx) {
