@@ -19,6 +19,7 @@ import static net.fabricmc.fabric.api.client.command.v2.ClientCommands.argument;
 import static net.fabricmc.fabric.api.client.command.v2.ClientCommands.literal;
 
 /**
+ * /farex gui                                 open the menu (same as the menu keybind)
  * /farex version                             show the installed version
  * /farex secret                              generate a random shared secret
  * /farex pair &lt;loader&gt; &lt;secret&gt;            (sender) who pulls my chamber
@@ -41,6 +42,10 @@ public final class FarexCommands {
         dispatcher.register(literal("farex")
                 .then(literal("version").executes(ctx -> {
                     ctx.getSource().sendFeedback(Component.literal("FarexBot " + FarexBot.version()));
+                    return 1;
+                }))
+                .then(literal("gui").executes(ctx -> {
+                    FarexBot.openMenuNextTick = true;
                     return 1;
                 }))
                 .then(literal("secret").executes(FarexCommands::generateSecret))

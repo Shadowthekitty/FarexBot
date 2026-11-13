@@ -30,6 +30,9 @@ public class FarexBot implements ClientModInitializer {
 
     public static FarexConfig config;
     private static KeyMapping pullKey;
+    private static KeyMapping menuKey;
+    /** Set by /farex gui: the chat screen closes after the command, so the menu opens on the next tick. */
+    static boolean openMenuNextTick;
     private static long lastSentAt;
     /** Sender side: nonce -> time sent, so we only show acks for our own requests. */
     private static final Map<String, Long> PENDING_ACKS = new HashMap<>();
@@ -42,11 +45,21 @@ public class FarexBot implements ClientModInitializer {
         pullKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
                 "key.farexbot.pull", InputConstants.Type.KEYBOARD, InputConstants.KEY_G, category));
 
+        menuKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
+                "key.farexbot.menu", InputConstants.Type.KEYBOARD, InputConstants.KEY_H, category));
+
         // Chamber clicks run at the start of the tick, where vanilla handles input.
         ClientTickEvents.START_CLIENT_TICK.register(ChamberPuller::tick);
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             while (pullKey.consumeClick()) {
                 requestPull(client);
+            }
+            while (menuKey.consumeClick()) {
+                openMenuNextTick = true;
+            }
+            if (openMenuNextTick) {
+                openMenuNextTick = false;
+                if (client.player != null) client.gui.setScreen(new FarexScreen());
             }
         });
 
@@ -66,7 +79,7 @@ public class FarexBot implements ClientModInitializer {
         LocalPlayer player = client.player;
         if (player == null) return;
         if (config.loaderName.isBlank() || config.secret.isBlank()) {
-            notify(client, Component.literal("Not paired. Use /farex pair <loader> <secret>")
+            notify(client, Component.literal("Not paired. Open the FarexBot menu (H) or use /farex pair <loader> <secret>")
                     .withStyle(ChatFormatting.RED));
             return;
         }

@@ -27,6 +27,14 @@ API. Check which version you have in game with `/farex version`.
 Requests are signed with HMAC-SHA256 and a per-friend secret, expire after 60 seconds, and can't be replayed.
 Other players can't set off your chambers by whispering you.
 
+## Menu
+
+Press **H** (rebindable) or run `/farex gui` to open the FarexBot menu. It does everything the commands below do:
+pair with a loader, add and test chambers, set the flip-back delay, unpair, and change settings.
+
+To add a chamber from the menu, look at its trapdoor/lever first, then open the menu: it registers the block you
+were looking at.
+
 ## Setup
 
 **Loader (you, the account at the chambers):**
