@@ -6,6 +6,8 @@ permissions:
 
 jobs:
   build:
+    # Commits marked [inspect] only look up game internals; they must not publish a release.
+    if: "!contains(github.event.head_commit.message, '[inspect]')"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
